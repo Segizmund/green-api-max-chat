@@ -18,10 +18,6 @@
 - **Axios** — HTTP-клиент
 - **Green API** — REST API мессенджера MAX
 
-## Скриншоты
-
-![Список чатов и окно переписки](./docs/screenshot-chat.png)
-
 ## Требования
 
 - **Node.js** 18 или выше
