@@ -8,7 +8,7 @@ export interface ContactData {
 }
 
 interface FindContactDropdownProps {
-    onSelectChat?: (contact: ContactData) => void;
+    onSelectChat: (contact: ContactData) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) => {
@@ -17,28 +17,31 @@ export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const dropdownRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const handleClickOutside = (e: globalThis.MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
                 setIsOpen(false);
+                setError(null);
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const toggleDropdown = () => setIsOpen((prev) => !prev);
+    const toggleDropdown = () => {
+        setIsOpen((prev) => !prev);
+        setError(null);
+    };
 
     const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {
         const country = COUNTRIES.find((c) => c.code === e.target.value);
-        if (country) {
-            setSelectedCountry(country);
-        }
+        if (country) setSelectedCountry(country);
     };
 
     const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -53,16 +56,18 @@ export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) 
         }
 
         setPhoneNumber(digitsOnly);
+        setError(null);
     };
 
-    const handleOpenChat = (e: MouseEvent<HTMLButtonElement>) => {
+    const handleOpenChat = async (e: MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
+
         const cleanNumber = phoneNumber.replace(/\D/g, '');
         const trimmedFirstName = firstName.trim();
         const trimmedLastName = lastName.trim();
 
         if (!cleanNumber || !trimmedFirstName) {
-            alert('Заполните номер телефона и имя');
+            setError('Заполните номер телефона и имя');
             return;
         }
 
@@ -75,8 +80,16 @@ export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) 
             ...(trimmedLastName && { lastName: trimmedLastName }),
         };
 
-        if (onSelectChat) {
-            onSelectChat(contactData);
+        setIsSubmitting(true);
+        setError(null);
+
+        const result = await onSelectChat(contactData);
+
+        setIsSubmitting(false);
+
+        if (!result.ok) {
+            setError(result.error ?? 'Не удалось добавить контакт');
+            return;
         }
 
         setPhoneNumber('');
@@ -105,6 +118,7 @@ export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) 
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         Найти по номеру
                     </span>
+
                     <div className="flex flex-col gap-1">
                         <div>
                             <label className="text-xs text-slate-600 font-medium">Номер телефона</label>
@@ -149,8 +163,11 @@ export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) 
                                 type="text"
                                 placeholder="Иван"
                                 value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus-outline-none focus:ring-2 focus:ring-[#3b9702]"
+                                onChange={(e) => {
+                                    setFirstName(e.target.value);
+                                    setError(null);
+                                }}
+                                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b9702]"
                             />
                         </div>
 
@@ -169,11 +186,18 @@ export const FindContactDropdown = ({ onSelectChat }: FindContactDropdownProps) 
                         </div>
                     </div>
 
+                    {error && (
+                        <div className="px-3 py-2 bg-red-50 border border-red-100 text-red-600 text-xs rounded-md">
+                            {error}
+                        </div>
+                    )}
+
                     <button
                         onClick={handleOpenChat}
-                        className="w-full mt-1 bg-[#3b9702] hover:bg-[#266101] text-white text-sm font-medium py-2 rounded-md transition duration-300 ease-linear cursor-pointer"
+                        disabled={isSubmitting}
+                        className="w-full mt-1 bg-[#3b9702] hover:bg-[#266101] text-white text-sm font-medium py-2 rounded-md transition duration-300 ease-linear cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Найти
+                        {isSubmitting ? 'Ищем…' : 'Найти'}
                     </button>
                 </div>
             )}
