@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FindContactDropdown, type ContactData } from "../components/FindContactDropdown";
 import { ChatWindow } from '../components/ChatWindow';
 import { useAuth } from '../context/AuthContext';
