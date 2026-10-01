@@ -1,4 +1,6 @@
+import axios from 'axios';
 import { greenApiAxios } from './axiosClient';
+import { translateGreenApiError } from '../utils/apiErrors';
 
 export interface SendMessageResponse {
     idMessage: string;
@@ -12,16 +14,21 @@ export const sendMessageApi = async (
 ): Promise<SendMessageResponse | null> => {
     try {
         const response = await greenApiAxios.post<SendMessageResponse>(
-        `/waInstance${idInstance}/sendMessage/${apiTokenInstance}`,
-        {
-            chatId,
-            message,
-        }
+            `/waInstance${idInstance}/sendMessage/${apiTokenInstance}`,
+            { chatId, message }
         );
 
         return response.data;
-    } catch (error) {
-        console.error('Ошибка при отправке сообщения:', error);
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error) && error.response) {
+            const rawMessage = error.response.data?.message;
+            const friendly = translateGreenApiError(
+                typeof rawMessage === 'string' ? rawMessage : undefined
+            );
+            console.error('Ошибка отправки:', friendly);
+        } else {
+            console.error('Ошибка соединения при отправке:', error);
+        }
         return null;
     }
 };
