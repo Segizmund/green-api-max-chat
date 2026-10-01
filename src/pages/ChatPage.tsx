@@ -19,34 +19,34 @@ export const ChatPage = () => {
     const activeChat = chats.find((c) => c.chatId === activeChatId);
     const activeMessages = activeChatId ? messages[activeChatId] || [] : [];
 
-    const handleSelectChat = async (contact: ContactData) => {
-        if (!credentials) return;
+    const handleSelectChat = async (contact: ContactData): Promise<{ ok: boolean; error?: string }> => {
+        if (!credentials) {
+            return { ok: false, error: 'Нет учётных данных' };
+        }
 
         const normalizedChatId = normalizeChatId(contact.chatId);
-        const normalizedContact: ChatItem = {
-            ...contact,
-            chatId: normalizedChatId,
-        };
+        const normalizedContact: ChatItem = { ...contact, chatId: normalizedChatId };
 
-        const isSuccess = await addContactApi(
+        const result = await addContactApi(
             credentials.idInstance,
             credentials.apiTokenInstance,
             normalizedContact
         );
 
-        if (!isSuccess) return;
+        if (!result.ok) {
+            return result;
+        }
 
         setChats((prevChats) => {
             const exists = prevChats.some(
                 (c) => normalizeChatId(c.chatId) === normalizedChatId
             );
-            if (!exists) {
-                return [normalizedContact, ...prevChats];
-            }
-            return prevChats;
+            return exists ? prevChats : [normalizedContact, ...prevChats];
         });
 
         setActiveChatId(normalizedChatId);
+
+        return { ok: true };
     };
 
     const processNotification = useCallback(async (): Promise<boolean> => {
