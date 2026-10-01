@@ -10,7 +10,7 @@ export const MainLayout = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50">
+        <div className="h-screen flex flex-col bg-slate-50">
         <Header
             credentials={credentials}
             logout={logout}
